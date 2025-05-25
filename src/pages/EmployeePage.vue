@@ -1,93 +1,63 @@
 <template>
   <q-page class="q-pa-md">
-    <q-card class="q-pa-md">
-      <q-form @submit.prevent="handleSubmit">
-        <q-input v-model="form.name" label="Name" filled class="q-mb-sm" />
-        <q-btn type="submit" label="Save" color="secondary" class="q-mr-sm" />
-        <q-btn label="Clear" color="secondary" @click="clearForm" />
-      </q-form>
-    </q-card>
+    <q-btn color="primary" label="Add User" @click="openCreateForm" class="q-mb-md" />
 
-    <q-table
-      title="Employees"
-      :rows="employees"
-      :columns="columns"
-      row-key="id"
-      class="q-mt-md"
-      flat
-      bordered
-      virtual-scroll
-    >
-      <template v-slot:body-cell-actions="props">
-        <q-td align="center">
-          <q-btn dense flat icon="edit" @click="editEmployee(props.row)" />
-          <q-btn dense flat icon="delete" color="red" @click="removeEmployee(props.row.id)" />
-        </q-td>
-      </template>
-    </q-table>
+    <div class="row q-gutter-md">
+      <EmployeeCard
+        v-for="employee in employees"
+        :key="employee.id"
+        :employee="employee"
+        @delete="deleteEmployee"
+        @select="openEditForm"
+      >
+        <template #header>
+          <div class="text-bold text-primary">{{ employee.name }}</div>
+        </template>
+      </EmployeeCard>
+    </div>
+
+    <q-dialog v-model="formDialog">
+      <EmployeeForm :employee="editedEmployee" @save="handleSave" @cancel="closeForm" />
+    </q-dialog>
   </q-page>
 </template>
 
-//script setup //composable // slots
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import { useEmployees } from 'src/composables/useEmployee';
+import { useEmployeeStore } from 'src/stores/employeeStore';
+import EmployeeCard from 'src/components/EmployeeCard.vue';
+import EmployeeForm from 'src/components/EmployeeForm.vue';
 import type { Employee } from 'src/types/Employee';
-import * as employeeApi from 'src/api/employeeApi';
-import type { QTableProps } from 'quasar';
-import { useQuasar } from 'quasar';
 
-const employees = ref<Employee[]>([]);
-const form = ref<Partial<Employee>>({});
-const editingId = ref<number | null>(null);
-const $q = useQuasar();
+const { employees, fetchEmployees, deleteEmployee, createEmployee, updateEmployee } =
+  useEmployees();
+const store = useEmployeeStore();
 
-const columns: QTableProps['columns'] = [
-  { name: 'id', label: 'Id', field: 'id', align: 'left' },
-  { name: 'name', label: 'Name', field: 'name', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
-];
+const formDialog = ref(false);
+const editedEmployee = ref<Employee | undefined>(undefined);
 
-onMounted(loadEmployees);
+const openCreateForm = () => {
+  editedEmployee.value = undefined;
+  formDialog.value = true;
+};
 
-async function loadEmployees() {
-  employees.value = await employeeApi.getEmployees();
-}
+const openEditForm = (employee: Employee) => {
+  editedEmployee.value = employee;
+  formDialog.value = true;
+};
 
-async function handleSubmit() {
-  if (editingId.value) {
-    const updated = await employeeApi.updateEmployee(editingId.value, form.value);
-    const index = employees.value.findIndex((u) => u.id === editingId.value);
-    if (index > -1) employees.value[index] = updated;
+const handleSave = async (data: Omit<Employee, 'id'> | Employee) => {
+  if (editedEmployee.value) {
+    await updateEmployee({ ...editedEmployee.value, ...data });
   } else {
-    const created = await employeeApi.createEmployee(form.value);
-    employees.value.unshift(created);
+    await createEmployee(data);
   }
-  clearForm();
-  await loadEmployees();
-}
+};
 
-function editEmployee(employee: Employee) {
-  form.value = { ...employee };
-  editingId.value = employee.id;
-}
+const closeForm = () => {
+  formDialog.value = false;
+};
 
-// eslint-disable-next-line @typescript-eslint/require-await
-async function removeEmployee(id: number) {
-  $q.dialog({
-    title: 'Confirm Delete',
-    message: 'Are you sure you want to delete this employee?',
-    cancel: true,
-    persistent: true,
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  }).onOk(async () => {
-    await employeeApi.deleteEmployee(id);
-    employees.value = employees.value.filter((u) => u.id !== id);
-    await loadEmployees();
-  });
-}
-
-function clearForm() {
-  form.value = {};
-  editingId.value = null;
-}
+onMounted(fetchEmployees);
 </script>
