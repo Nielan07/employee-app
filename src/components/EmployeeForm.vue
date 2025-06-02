@@ -1,40 +1,50 @@
 <template>
-  <q-form @submit.prevent="onSubmit">
-    <q-card>
-      <q-card-section>
-        <q-input v-model="form.name" label="Name" filled />
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn flat label="Cancel" color="secondary" @click="$emit('cancel')" />
-        <q-btn type="submit" label="Save" color="primary" />
-      </q-card-actions>
-    </q-card>
-  </q-form>
+  <q-card>
+    <q-card-section>
+      <q-input v-model="form.name" label="Name" />
+    </q-card-section>
+    <q-card-actions align="right">
+      <q-btn label="Cancel" @click="$emit('cancel')" color="secondary" />
+      <q-btn label="Save" @click="saveEmployee" color="primary" />
+    </q-card-actions>
+  </q-card>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineEmits, defineProps } from 'vue';
+import { useEmpForm } from 'src/composables/useForm';
+import { useEmployeeStore } from 'src/stores/employeeStore';
 import type { Employee } from 'src/types/Employee';
+import { watch } from 'vue';
 
-const props = defineProps<{ employee?: Employee }>();
-const emit = defineEmits<{
-  (e: 'save', data: Omit<Employee, 'id'> | Employee): void;
-  (e: 'cancel'): void;
-}>();
+const props = defineProps<{ employee: Employee | null }>();
 
-const form = ref<Omit<Employee, 'id'> & { id?: number }>({
+const emit = defineEmits(['cancel', 'saved']);
+const strore = useEmployeeStore();
+const { form, resetForm } = useEmpForm({
+  id: null,
   name: '',
 });
 
 watch(
   () => props.employee,
-  (newVal) => {
-    form.value = newVal ? { ...newVal } : { name: '' };
+  (newEmployee) => {
+    if (newEmployee) {
+      form.id = newEmployee.id;
+      form.name = newEmployee.name;
+    } else {
+      resetForm();
+    }
   },
   { immediate: true },
 );
 
-const onSubmit = () => {
-  emit('save', form.value);
+const saveEmployee = async () => {
+  if (form.id) {
+    await strore.updateEmployee(form);
+  } else {
+    await strore.addEmployee({ name: form.name });
+  }
+  emit('saved');
+  resetForm();
 };
 </script>

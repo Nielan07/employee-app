@@ -1,63 +1,44 @@
 <template>
-  <q-page class="q-pa-md">
-    <q-btn color="primary" label="Add User" @click="openCreateForm" class="q-mb-md" />
-
-    <div class="row q-gutter-md">
-      <EmployeeCard
-        v-for="employee in employees"
-        :key="employee.id"
-        :employee="employee"
-        @delete="deleteEmployee"
-        @select="openEditForm"
-      >
-        <template #header>
-          <div class="text-bold text-primary">{{ employee.name }}</div>
-        </template>
-      </EmployeeCard>
-    </div>
-
-    <q-dialog v-model="formDialog">
-      <EmployeeForm :employee="editedEmployee" @save="handleSave" @cancel="closeForm" />
+  <q-page padding>
+    <employee-list @edit="editEmployee" @delete="deleteEmployee" />
+    <q-dialog v-model="showForm">
+      <employee-form
+        @cancel="showForm = false"
+        @saved="handleEmployeeSaved"
+        :employee="selectedEmployee"
+      />
     </q-dialog>
+    <q-btn label="Add Employee" @click="addEmployee" color="primary" />
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useEmployees } from 'src/composables/useEmployee';
-import { useEmployeeStore } from 'src/stores/employeeStore';
-import EmployeeCard from 'src/components/EmployeeCard.vue';
+import EmployeeList from 'src/components/EmployeeList.vue';
 import EmployeeForm from 'src/components/EmployeeForm.vue';
-import type { Employee } from 'src/types/Employee';
+import { useEmployeeStore } from 'src/stores/employeeStore';
 
-const { employees, fetchEmployees, deleteEmployee, createEmployee, updateEmployee } =
-  useEmployees();
 const store = useEmployeeStore();
+const showForm = ref(false);
+const selectedEmployee = ref(null);
 
-const formDialog = ref(false);
-const editedEmployee = ref<Employee | undefined>(undefined);
+onMounted(() => {
+  void store.fetchEmployees();
+});
 
-const openCreateForm = () => {
-  editedEmployee.value = undefined;
-  formDialog.value = true;
+const addEmployee = () => {
+  selectedEmployee.value = null;
+  showForm.value = true;
 };
-
-const openEditForm = (employee: Employee) => {
-  editedEmployee.value = employee;
-  formDialog.value = true;
+const editEmployee = (employee: null) => {
+  selectedEmployee.value = employee;
+  showForm.value = true;
 };
-
-const handleSave = async (data: Omit<Employee, 'id'> | Employee) => {
-  if (editedEmployee.value) {
-    await updateEmployee({ ...editedEmployee.value, ...data });
-  } else {
-    await createEmployee(data);
-  }
+const deleteEmployee = async (id: number) => {
+  await store.deleteEmployee(id);
 };
-
-const closeForm = () => {
-  formDialog.value = false;
+const handleEmployeeSaved = () => {
+  showForm.value = false;
+  selectedEmployee.value = null;
 };
-
-onMounted(fetchEmployees);
 </script>
