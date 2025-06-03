@@ -10,8 +10,8 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/IndexPage.vue'),
       },
       {
-        path: 'employees',
-        component: () => import('src/pages/EmployeePage.vue'),
+        path: 'productCategories',
+        component: () => import('src/pages/ProductCategoryPage.vue'),
       },
     ],
   },

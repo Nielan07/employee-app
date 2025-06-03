@@ -7,8 +7,11 @@ export function useApi() {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const apiRequest = async (url: string, method: 'get' | 'post' | 'put' | 'delete', data?: any) => {
+  const apiRequest = async (
+    url: string,
+    method: 'get' | 'post' | 'put' | 'delete',
+    data?: unknown,
+  ) => {
     loading.value = true;
     error.value = null;
 
@@ -19,6 +22,7 @@ export function useApi() {
         data,
       });
       return response.data;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       error.value = err.message || 'An error occurred';

@@ -30,7 +30,7 @@
         </q-list>
       </q-scroll-area>
       <div class="absolute-top bg-transparent text-black q-pa-md text-center text-h5">
-        Employee App
+        Sample CRUD App
       </div>
     </q-drawer>
 
@@ -50,9 +50,9 @@ const menuList = [
     separator: true,
   },
   {
-    to: '/employees',
+    to: '/productCategories',
     icon: 'people',
-    label: 'Employees',
+    label: 'Product Categories',
     separator: true,
   },
 ];
