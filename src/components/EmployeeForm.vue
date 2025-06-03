@@ -21,7 +21,7 @@ const props = defineProps<{ employee: Employee | null }>();
 const emit = defineEmits(['cancel', 'saved']);
 const strore = useEmployeeStore();
 const { form, resetForm } = useEmpForm({
-  id: null,
+  id: null as number | null,
   name: '',
 });
 
@@ -29,8 +29,8 @@ watch(
   () => props.employee,
   (newEmployee) => {
     if (newEmployee) {
-      form.id = newEmployee.id;
-      form.name = newEmployee.name;
+      form.value.id = newEmployee.id;
+      form.value.name = newEmployee.name;
     } else {
       resetForm();
     }
@@ -39,10 +39,13 @@ watch(
 );
 
 const saveEmployee = async () => {
-  if (form.id) {
-    await strore.updateEmployee(form);
+  if (form.value.id) {
+    await strore.updateEmployee(form.value.id, {
+      name: form.value.name,
+      id: 0,
+    });
   } else {
-    await strore.addEmployee({ name: form.name });
+    await strore.createEmployee({ name: form.value.name });
   }
   emit('saved');
   resetForm();

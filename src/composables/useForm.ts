@@ -1,7 +1,7 @@
-import { ref, type Ref } from 'vue';
+import { ref } from 'vue';
 
-export function useEmpForm<T extends object>(initialState: T) {
-  const form = ref({ ...initialState }) as Ref<T>;
+export function useEmpForm<T extends { id: number | null; name: string }>(initialState: T) {
+  const form = ref<T>({ ...initialState });
 
   const resetForm = () => {
     form.value = { ...initialState };

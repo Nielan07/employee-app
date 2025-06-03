@@ -1,56 +1,57 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
+import { ref } from 'vue';
+import { useApi } from 'src/composables/useApi';
 import type { Employee } from 'src/types/Employee';
 
-const API_URL = 'http://127.0.0.1:8000/api/accounting-billing/employees/';
-interface MyState {
-  employees: Employee[];
-  loading: boolean;
-}
+export const useEmployeeStore = defineStore('employeeStore', () => {
+  const employees = ref<Employee[]>([]);
+  const { loading, error, apiRequest } = useApi();
 
-export const useEmployeeStore = defineStore('employeeStore', {
-  state: (): MyState => ({
-    employees: [],
-    loading: false,
-  }),
-  actions: {
-    async fetchEmployees() {
-      this.loading = true;
-      try {
-        const response = await axios.get(API_URL);
-        this.employees = response.data;
-      } catch (error) {
-        console.error('Error fetching employees:', error);
-      } finally {
-        this.loading = false;
+  const fetchEmployees = async () => {
+    try {
+      employees.value = await apiRequest('employees', 'get');
+    } catch (err) {
+      console.error('Error fetching employees:', err);
+    }
+  };
+
+  const createEmployee = async (newEmployee: Omit<Employee, 'id'>) => {
+    try {
+      const createdEmployee = await apiRequest('employees', 'post', newEmployee);
+      employees.value.push(createdEmployee);
+    } catch (err) {
+      console.error('Error creating employee:', err);
+    }
+  };
+
+  const updateEmployee = async (id: number, updatedEmployee: Employee) => {
+    try {
+      const updated = await apiRequest(`items/${id}`, 'put', updatedEmployee);
+      const index = employees.value.findIndex((employee) => employee.id === id);
+      if (index !== -1) {
+        employees.value.splice(index, 1, updated);
       }
-    },
-    async addEmployee(employee: Omit<Employee, 'id'>) {
-      try {
-        const response = await axios.post(API_URL, employee);
-        this.employees.push(response.data);
-      } catch (error) {
-        console.error('Error adding employee:', error);
-      }
-    },
-    async updateEmployee(employee: Employee) {
-      try {
-        await axios.put(`${API_URL}/${employee.id}`, employee);
-        const index = this.employees.findIndex((i) => i.id === employee.id);
-        if (index !== -1) {
-          this.employees[index] = employee;
-        }
-      } catch (error) {
-        console.error('Error updating employee:', error);
-      }
-    },
-    async deleteEmployee(id: number) {
-      try {
-        await axios.delete(`${API_URL}/${id}`);
-        this.employees = this.employees.filter((employee) => employee.id !== id);
-      } catch (error) {
-        console.error('Error deleting employee:', error);
-      }
-    },
-  },
+    } catch (err) {
+      console.error('Error updating employee:', err);
+    }
+  };
+
+  const deleteEmployee = async (id: number) => {
+    try {
+      await apiRequest(`items/${id}`, 'delete');
+      employees.value = employees.value.filter((employee) => employee.id !== id);
+    } catch (err) {
+      console.error('Error deleting employee:', err);
+    }
+  };
+
+  return {
+    employees,
+    loading,
+    error,
+    fetchEmployees,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee,
+  };
 });
